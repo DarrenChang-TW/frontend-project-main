@@ -16,6 +16,8 @@ import InputNumber from 'primevue/inputnumber';
 
 let viewer = ref();
 let fileName = ref<string>('');
+
+// check pdf file render finish
 let iframeHeight = `${window.innerHeight-60}px`;
 let groups = ref<Group[]>([{
   groupName: 'tenantData',
@@ -81,7 +83,14 @@ const jumpPage = (pageNumber: number) => {
 const onDropdownChange = (event: any) => {
   fileName.value = event.value.name;
 
-  firstHighlight();
+
+  const checkDownloadComplete = setInterval(() => {
+    if (checkFileRender()) {
+      console.log('PDF下載完成');
+      firstHighlight();
+      clearInterval(checkDownloadComplete);
+    }
+  }, 1000)
 }
 
 onMounted(() => {
@@ -262,14 +271,12 @@ const firstHighlight = () => {
     "all_str": input_coor['Text'],
     "rects": new_rects,
   };
-
-  //pdf_container
-  setTimeout(() => {
-    document.getElementById("pdf_container").contentWindow.highLightTargetCor(input_coor['Page'],highlight_coor);
-  }, 5000);
-
+  document.getElementById("pdf_container").contentWindow.highLightTargetCor(input_coor['Page'],highlight_coor);
 }
 
+const checkFileRender = () => {
+  return document.getElementById("pdf_container").contentWindow.PDFViewerApplication.downloadComplete;
+}
 // endregion
 </script>
 
