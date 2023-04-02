@@ -1,0 +1,15 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.node.json",
+  "include": ["vite.config.*"],
+  "compilerOptions": {
+    "composite": true,
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "module": "es2022",
+    "moduleResolution": "Node",
+    "lib": [
+      "es2022",
+      "dom"
+    ]
+  }
+}

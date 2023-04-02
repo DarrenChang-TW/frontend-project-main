@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<!--
+Copyright 2012 Mozilla Foundation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Adobe CMap resources are covered by their own copyright but the same license:
+
+    Copyright 1990-2015 Adobe Systems Incorporated.
+
+See https://github.com/adobe-type-tools/cmap-resources
+-->
+<html dir="ltr" mozdisallowselectionprint>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<meta name="google" content="notranslate">
+		<title>PDF.js viewer</title>
+
+		<link rel="stylesheet" href="viewer.css">
+
+		<!-- This snippet is used in production (included from viewer.html) -->
+		<link rel="resource" type="application/l10n" href="locale/locale.properties">
+		<script src="../build/pdf.js"></script>
+
+		<script src="viewer.js"></script>
+		<!-- This snippet is used in production (included from viewer.html) -->
+		<link rel="resource" type="application/l10n" href="locale/locale.properties">
+		<script src="annotation.js"></script>
+        <script src="Annotation-extend.js"></script>
+		<script src="../fabric/fabric.js"></script>
+		<script src="../pdflib/pdf-lib.js"></script>
+		<link href="annotation.css" rel="stylesheet">
+		<link href="../fontawesome/css/font-awesome.min.css" rel="stylesheet">
+		<script src="FileSaver.js"></script>
+	</head>
+
+	<body tabindex="1">
+		<div class='my-processing-tip' hidden="true" id='my-download-process-div'>
+			<div id='my-download-process-log'>下载准备中...</div>
+		</div>
+		<div class='annotation-container'>
+			<input hidden="true" title='打开要导入的注释文件 open the input annotation file' class="newFile" id='choose_file'
+				type="file" />
+			<input hidden="true" title='打开要插入的图片 open the insert image file' accept=".jpg,.jpeg,.png,.PNG,.JPG,.JPEG"
+				id='image_insert' type="file" />
+			<div id='firefly-annotation-buttons' class='annotation-buttons' style="font-size: 15px;">
+			</div>
+			<div id='annotations_list' class='annotations-list' hidden="true">
+			</div>
+		</div>
+		<div id="my-menu" class="my-menu-x">
+		</div>
+		<div id='div-for-download-canvas' hidden="true">
+		</div>
+		</div>
+		<div hidden="true" id='ff-copyconfirm-btn' class='annotation-buttons-hor'>
+		</div>
+		
+		<div id="outerContainer">
+
+			<div id="sidebarContainer">
+				<div id="toolbarSidebar">
+					<div id="toolbarSidebarLeft">
+						<div id="sidebarViewButtons" class="splitToolbarButton toggled" role="radiogroup">
+							<button id="viewThumbnail" class="toolbarButton toggled" title="Show Thumbnails"
+								tabindex="2" data-l10n-id="thumbs" role="radio" aria-checked="true"
+								aria-controls="thumbnailView">
+								<span data-l10n-id="thumbs_label">Thumbnails</span>
+							</button>
+							<button id="viewOutline" class="toolbarButton"
+								title="Show Document Outline (double-click to expand/collapse all items)" tabindex="3"
+								data-l10n-id="document_outline" role="radio" aria-checked="false"
+								aria-controls="outlineView">
+								<span data-l10n-id="document_outline_label">Document Outline</span>
+							</button>
+							<button id="viewAttachments" class="toolbarButton" title="Show Attachments" tabindex="4"
+								data-l10n-id="attachments" role="radio" aria-checked="false"
+								aria-controls="attachmentsView">
+								<span data-l10n-id="attachments_label">Attachments</span>
+							</button>
+							<button id="viewLayers" class="toolbarButton"
+								title="Show Layers (double-click to reset all layers to the default state)" tabindex="5"
+								data-l10n-id="layers" role="radio" aria-checked="false" aria-controls="layersView">
+								<span data-l10n-id="layers_label">Layers</span>
+							</button>
+						</div>
+					</div>
+
+					<div id="toolbarSidebarRight">
+						<div id="outlineOptionsContainer" class="hidden">
+							<div class="verticalToolbarSeparator"></div>
+
+							<button id="currentOutlineItem" class="toolbarButton" disabled="disabled"
+								title="Find Current Outline Item" tabindex="6" data-l10n-id="current_outline_item">
+								<span data-l10n-id="current_outline_item_label">Current Outline Item</span>
+							</button>
+						</div>
+					</div>
+				</div>
+				<div id="sidebarContent">
+					<div id="thumbnailView">
+					</div>
+					<div id="outlineView" class="hidden">
+					</div>
+					<div id="attachmentsView" class="hidden">
+					</div>
+					<div id="layersView" class="hidden">
+					</div>
+				</div>
+				<div id="sidebarResizer"></div>
+			</div> <!-- sidebarContainer -->
+
+			<div id="mainContainer">
+				<div class="findbar hidden doorHanger" id="findbar">
+					<div id="findbarInputContainer">
+						<input id="findInput" class="toolbarField" title="Find" placeholder="Find in document…"
+							tabindex="91" data-l10n-id="find_input" aria-invalid="false">
+						<div class="splitToolbarButton">
+							<button id="findPrevious" class="toolbarButton"
+								title="Find the previous occurrence of the phrase" tabindex="92"
+								data-l10n-id="find_previous">
+								<span data-l10n-id="find_previous_label">Previous</span>
+							</button>
+							<div class="splitToolbarButtonSeparator"></div>
+							<button id="findNext" class="toolbarButton" title="Find the next occurrence of the phrase"
+								tabindex="93" data-l10n-id="find_next">
+								<span data-l10n-id="find_next_label">Next</span>
+							</button>
+						</div>
+					</div>
+
+					<div id="findbarOptionsOneContainer">
+						<input type="checkbox" id="findHighlightAll" class="toolbarField" tabindex="94">
+						<label for="findHighlightAll" class="toolbarLabel" data-l10n-id="find_highlight">Highlight
+							All</label>
+						<input type="checkbox" id="findMatchCase" class="toolbarField" tabindex="95">
+						<label for="findMatchCase" class="toolbarLabel" data-l10n-id="find_match_case_label">Match
+							Case</label>
+					</div>
+					<div id="findbarOptionsTwoContainer">
+						<input type="checkbox" id="findMatchDiacritics" class="toolbarField" tabindex="96">
+						<label for="findMatchDiacritics" class="toolbarLabel"
+							data-l10n-id="find_match_diacritics_label">Match Diacritics</label>
+						<input type="checkbox" id="findEntireWord" class="toolbarField" tabindex="97">
+						<label for="findEntireWord" class="toolbarLabel" data-l10n-id="find_entire_word_label">Whole
+							Words</label>
+					</div>
+
+					<div id="findbarMessageContainer" aria-live="polite">
+						<span id="findResultsCount" class="toolbarLabel"></span>
+						<span id="findMsg" class="toolbarLabel"></span>
+					</div>
+				</div> <!-- findbar -->
+
+				<div class="editorParamsToolbar hidden doorHangerRight" id="editorFreeTextParamsToolbar">
+					<div class="editorParamsToolbarContainer">
+						<div class="editorParamsSetter">
+							<label for="editorFreeTextColor" class="editorParamsLabel"
+								data-l10n-id="editor_free_text_color">Color</label>
+							<input type="color" id="editorFreeTextColor" class="editorParamsColor" tabindex="100">
+						</div>
+						<div class="editorParamsSetter">
+							<label for="editorFreeTextFontSize" class="editorParamsLabel"
+								data-l10n-id="editor_free_text_size">Size</label>
+							<input type="range" id="editorFreeTextFontSize" class="editorParamsSlider" value="10"
+								min="5" max="100" step="1" tabindex="101">
+						</div>
+					</div>
+				</div>
+
+				<div class="editorParamsToolbar hidden doorHangerRight" id="editorInkParamsToolbar">
+					<div class="editorParamsToolbarContainer">
+						<div class="editorParamsSetter">
+							<label for="editorInkColor" class="editorParamsLabel"
+								data-l10n-id="editor_ink_color">Color</label>
+							<input type="color" id="editorInkColor" class="editorParamsColor" tabindex="102">
+						</div>
+						<div class="editorParamsSetter">
+							<label for="editorInkThickness" class="editorParamsLabel"
+								data-l10n-id="editor_ink_thickness">Thickness</label>
+							<input type="range" id="editorInkThickness" class="editorParamsSlider" value="1" min="1"
+								max="20" step="1" tabindex="103">
+						</div>
+						<div class="editorParamsSetter">
+							<label for="editorInkOpacity" class="editorParamsLabel"
+								data-l10n-id="editor_ink_opacity">Opacity</label>
+							<input type="range" id="editorInkOpacity" class="editorParamsSlider" value="100" min="1"
+								max="100" step="1" tabindex="104">
+						</div>
+					</div>
+				</div>
+
+				<div id="secondaryToolbar" class="secondaryToolbar hidden doorHangerRight">
+					<div id="secondaryToolbarButtonContainer">
+						<button id="secondaryOpenFile" class="secondaryToolbarButton visibleLargeView" title="Open File"
+							tabindex="51" data-l10n-id="open_file">
+							<span data-l10n-id="open_file_label">Open</span>
+						</button>
+
+						<button id="secondaryPrint" class="secondaryToolbarButton visibleMediumView" title="Print"
+							tabindex="52" data-l10n-id="print">
+							<span data-l10n-id="print_label">Print</span>
+						</button>
+
+						<button id="secondaryDownload" class="secondaryToolbarButton visibleMediumView" title="Save"
+							tabindex="53" data-l10n-id="save">
+							<span data-l10n-id="save_label">Save</span>
+						</button>
+
+						<div class="horizontalToolbarSeparator visibleLargeView"></div>
+
+						<button id="presentationMode" class="secondaryToolbarButton" title="Switch to Presentation Mode"
+							tabindex="54" data-l10n-id="presentation_mode">
+							<span data-l10n-id="presentation_mode_label">Presentation Mode</span>
+						</button>
+
+						<a href="#" id="viewBookmark" class="secondaryToolbarButton"
+							title="Current view (copy or open in new window)" tabindex="55" data-l10n-id="bookmark">
+							<span data-l10n-id="bookmark_label">Current View</span>
+						</a>
+
+						<div id="viewBookmarkSeparator" class="horizontalToolbarSeparator"></div>
+
+						<button id="firstPage" class="secondaryToolbarButton" title="Go to First Page" tabindex="56"
+							data-l10n-id="first_page">
+							<span data-l10n-id="first_page_label">Go to First Page</span>
+						</button>
+						<button id="lastPage" class="secondaryToolbarButton" title="Go to Last Page" tabindex="57"
+							data-l10n-id="last_page">
+							<span data-l10n-id="last_page_label">Go to Last Page</span>
+						</button>
+
+						<div class="horizontalToolbarSeparator"></div>
+
+						<button id="pageRotateCw" class="secondaryToolbarButton" title="Rotate Clockwise" tabindex="58"
+							data-l10n-id="page_rotate_cw">
+							<span data-l10n-id="page_rotate_cw_label">Rotate Clockwise</span>
+						</button>
+						<button id="pageRotateCcw" class="secondaryToolbarButton" title="Rotate Counterclockwise"
+							tabindex="59" data-l10n-id="page_rotate_ccw">
+							<span data-l10n-id="page_rotate_ccw_label">Rotate Counterclockwise</span>
+						</button>
+
+						<div class="horizontalToolbarSeparator"></div>
+
+						<div id="cursorToolButtons" role="radiogroup">
+							<button id="cursorSelectTool" class="secondaryToolbarButton toggled"
+								title="Enable Text Selection Tool" tabindex="60" data-l10n-id="cursor_text_select_tool"
+								role="radio" aria-checked="true">
+								<span data-l10n-id="cursor_text_select_tool_label">Text Selection Tool</span>
+							</button>
+							<button id="cursorHandTool" class="secondaryToolbarButton" title="Enable Hand Tool"
+								tabindex="61" data-l10n-id="cursor_hand_tool" role="radio" aria-checked="false">
+								<span data-l10n-id="cursor_hand_tool_label">Hand Tool</span>
+							</button>
+						</div>
+
+						<div class="horizontalToolbarSeparator"></div>
+
+						<div id="scrollModeButtons" role="radiogroup">
+							<button id="scrollPage" class="secondaryToolbarButton" title="Use Page Scrolling"
+								tabindex="62" data-l10n-id="scroll_page" role="radio" aria-checked="false">
+								<span data-l10n-id="scroll_page_label">Page Scrolling</span>
+							</button>
+							<button id="scrollVertical" class="secondaryToolbarButton toggled"
+								title="Use Vertical Scrolling" tabindex="63" data-l10n-id="scroll_vertical" role="radio"
+								aria-checked="true">
+								<span data-l10n-id="scroll_vertical_label">Vertical Scrolling</span>
+							</button>
+							<button id="scrollHorizontal" class="secondaryToolbarButton"
+								title="Use Horizontal Scrolling" tabindex="64" data-l10n-id="scroll_horizontal"
+								role="radio" aria-checked="false">
+								<span data-l10n-id="scroll_horizontal_label">Horizontal Scrolling</span>
+							</button>
+							<button id="scrollWrapped" class="secondaryToolbarButton" title="Use Wrapped Scrolling"
+								tabindex="65" data-l10n-id="scroll_wrapped" role="radio" aria-checked="false">
+								<span data-l10n-id="scroll_wrapped_label">Wrapped Scrolling</span>
+							</button>
+						</div>
+
+						<div class="horizontalToolbarSeparator"></div>
+
+						<div id="spreadModeButtons" role="radiogroup">
+							<button id="spreadNone" class="secondaryToolbarButton toggled"
+								title="Do not join page spreads" tabindex="66" data-l10n-id="spread_none" role="radio"
+								aria-checked="true">
+								<span data-l10n-id="spread_none_label">No Spreads</span>
+							</button>
+							<button id="spreadOdd" class="secondaryToolbarButton"
+								title="Join page spreads starting with odd-numbered pages" tabindex="67"
+								data-l10n-id="spread_odd" role="radio" aria-checked="false">
+								<span data-l10n-id="spread_odd_label">Odd Spreads</span>
+							</button>
+							<button id="spreadEven" class="secondaryToolbarButton"
+								title="Join page spreads starting with even-numbered pages" tabindex="68"
+								data-l10n-id="spread_even" role="radio" aria-checked="false">
+								<span data-l10n-id="spread_even_label">Even Spreads</span>
+							</button>
+						</div>
+
+						<div class="horizontalToolbarSeparator"></div>
+
+						<button id="documentProperties" class="secondaryToolbarButton" title="Document Properties…"
+							tabindex="69" data-l10n-id="document_properties" aria-controls="documentPropertiesDialog">
+							<span data-l10n-id="document_properties_label">Document Properties…</span>
+						</button>
+					</div>
+				</div> <!-- secondaryToolbar -->
+
+				<div class="toolbar">
+					<div id="toolbarContainer">
+						<div id="toolbarViewer">
+							<div id="toolbarViewerLeft">
+								<button id="sidebarToggle" class="toolbarButton" title="Toggle Sidebar" tabindex="11"
+									data-l10n-id="toggle_sidebar" aria-expanded="false"
+									aria-controls="sidebarContainer">
+									<span data-l10n-id="toggle_sidebar_label">Toggle Sidebar</span>
+								</button>
+								<div class="toolbarButtonSpacer"></div>
+								<button id="viewFind" class="toolbarButton" title="Find in Document" tabindex="12"
+									data-l10n-id="findbar" aria-expanded="false" aria-controls="findbar">
+									<span data-l10n-id="findbar_label">Find</span>
+								</button>
+								<div class="splitToolbarButton hiddenSmallView">
+									<button class="toolbarButton" title="Previous Page" id="previous" tabindex="13"
+										data-l10n-id="previous">
+										<span data-l10n-id="previous_label">Previous</span>
+									</button>
+									<div class="splitToolbarButtonSeparator"></div>
+									<button class="toolbarButton" title="Next Page" id="next" tabindex="14"
+										data-l10n-id="next">
+										<span data-l10n-id="next_label">Next</span>
+									</button>
+								</div>
+								<input type="number" id="pageNumber" class="toolbarField" title="Page" value="1" min="1"
+									tabindex="15" data-l10n-id="page" autocomplete="off">
+								<span id="numPages" class="toolbarLabel"></span>
+							</div>
+							<div id="toolbarViewerRight">
+								<button id="openFile" class="toolbarButton hiddenLargeView" title="Open File"
+									tabindex="31" data-l10n-id="open_file">
+									<span data-l10n-id="open_file_label">Open</span>
+								</button>
+
+								<button id="print" class="toolbarButton hiddenMediumView" title="Print" tabindex="32"
+									data-l10n-id="print">
+									<span data-l10n-id="print_label">Print</span>
+								</button>
+
+								<button id="download" class="toolbarButton hiddenMediumView" title="Save" tabindex="33"
+									data-l10n-id="save">
+									<span data-l10n-id="save_label">Save</span>
+								</button>
+
+								<div hidden="true" class="verticalToolbarSeparator hiddenMediumView"></div>
+
+								<div hidden="true" id="editorModeButtons" class="splitToolbarButton toggled" role="radiogroup">
+									<button id="editorFreeText" class="toolbarButton" disabled="disabled" title="Text"
+										role="radio" aria-checked="false" tabindex="34"
+										data-l10n-id="editor_free_text2">
+										<span data-l10n-id="editor_free_text2_label">Text</span>
+									</button>
+									<button id="editorInk" class="toolbarButton" disabled="disabled" title="Draw"
+										role="radio" aria-checked="false" tabindex="35" data-l10n-id="editor_ink2">
+										<span data-l10n-id="editor_ink2_label">Draw</span>
+									</button>
+								</div>
+
+								<div id="editorModeSeparator" class="verticalToolbarSeparator"></div>
+
+								<button id="secondaryToolbarToggle" class="toolbarButton" title="Tools" tabindex="48"
+									data-l10n-id="tools" aria-expanded="false" aria-controls="secondaryToolbar">
+									<span data-l10n-id="tools_label">Tools</span>
+								</button>
+							</div>
+							<div id="toolbarViewerMiddle">
+								<div class="splitToolbarButton">
+									<button id="zoomOut" class="toolbarButton" title="Zoom Out" tabindex="21"
+										data-l10n-id="zoom_out">
+										<span data-l10n-id="zoom_out_label">Zoom Out</span>
+									</button>
+									<div class="splitToolbarButtonSeparator"></div>
+									<button id="zoomIn" class="toolbarButton" title="Zoom In" tabindex="22"
+										data-l10n-id="zoom_in">
+										<span data-l10n-id="zoom_in_label">Zoom In</span>
+									</button>
+								</div>
+								<span id="scaleSelectContainer" class="dropdownToolbarButton">
+									<select id="scaleSelect" title="Zoom" tabindex="23" data-l10n-id="zoom">
+										<option id="pageAutoOption" title="" value="auto" selected="selected"
+											data-l10n-id="page_scale_auto">Automatic Zoom</option>
+										<option id="pageActualOption" title="" value="page-actual"
+											data-l10n-id="page_scale_actual">Actual Size</option>
+										<option id="pageFitOption" title="" value="page-fit"
+											data-l10n-id="page_scale_fit">Page Fit</option>
+										<option id="pageWidthOption" title="" value="page-width"
+											data-l10n-id="page_scale_width">Page Width</option>
+										<option id="customScaleOption" title="" value="custom" disabled="disabled"
+											hidden="true"></option>
+										<option title="" value="0.5" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 50 }'>50%</option>
+										<option title="" value="0.75" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 75 }'>75%</option>
+										<option title="" value="1" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 100 }'>100%</option>
+										<option title="" value="1.25" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 125 }'>125%</option>
+										<option title="" value="1.5" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 150 }'>150%</option>
+										<option title="" value="2" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 200 }'>200%</option>
+										<option hidden="true" title="" value="3" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 300 }'>300%</option>
+										<option hidden="true" title="" value="4" data-l10n-id="page_scale_percent"
+											data-l10n-args='{ "scale": 400 }'>400%</option>
+									</select>
+								</span>
+							</div>
+						</div>
+						<div id="loadingBar">
+							<div class="progress">
+								<div class="glimmer">
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div id="viewerContainer" tabindex="0">
+					<div id="viewer" class="pdfViewer"></div>
+				</div>
+			</div> <!-- mainContainer -->
+
+			<div id="dialogContainer">
+				<dialog id="passwordDialog">
+					<div class="row">
+						<label for="password" id="passwordText" data-l10n-id="password_label">Enter the password to open
+							this PDF file:</label>
+					</div>
+					<div class="row">
+						<input type="password" id="password" class="toolbarField">
+					</div>
+					<div class="buttonRow">
+						<button id="passwordCancel" class="dialogButton"><span
+								data-l10n-id="password_cancel">Cancel</span></button>
+						<button id="passwordSubmit" class="dialogButton"><span
+								data-l10n-id="password_ok">OK</span></button>
+					</div>
+				</dialog>
+				<dialog id="documentPropertiesDialog">
+					<div class="row">
+						<span id="fileNameLabel" data-l10n-id="document_properties_file_name">File name:</span>
+						<p id="fileNameField" aria-labelledby="fileNameLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="fileSizeLabel" data-l10n-id="document_properties_file_size">File size:</span>
+						<p id="fileSizeField" aria-labelledby="fileSizeLabel">-</p>
+					</div>
+					<div class="separator"></div>
+					<div class="row">
+						<span id="titleLabel" data-l10n-id="document_properties_title">Title:</span>
+						<p id="titleField" aria-labelledby="titleLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="authorLabel" data-l10n-id="document_properties_author">Author:</span>
+						<p id="authorField" aria-labelledby="authorLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="subjectLabel" data-l10n-id="document_properties_subject">Subject:</span>
+						<p id="subjectField" aria-labelledby="subjectLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="keywordsLabel" data-l10n-id="document_properties_keywords">Keywords:</span>
+						<p id="keywordsField" aria-labelledby="keywordsLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="creationDateLabel" data-l10n-id="document_properties_creation_date">Creation
+							Date:</span>
+						<p id="creationDateField" aria-labelledby="creationDateLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="modificationDateLabel"
+							data-l10n-id="document_properties_modification_date">Modification Date:</span>
+						<p id="modificationDateField" aria-labelledby="modificationDateLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="creatorLabel" data-l10n-id="document_properties_creator">Creator:</span>
+						<p id="creatorField" aria-labelledby="creatorLabel">-</p>
+					</div>
+					<div class="separator"></div>
+					<div class="row">
+						<span id="producerLabel" data-l10n-id="document_properties_producer">PDF Producer:</span>
+						<p id="producerField" aria-labelledby="producerLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="versionLabel" data-l10n-id="document_properties_version">PDF Version:</span>
+						<p id="versionField" aria-labelledby="versionLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="pageCountLabel" data-l10n-id="document_properties_page_count">Page Count:</span>
+						<p id="pageCountField" aria-labelledby="pageCountLabel">-</p>
+					</div>
+					<div class="row">
+						<span id="pageSizeLabel" data-l10n-id="document_properties_page_size">Page Size:</span>
+						<p id="pageSizeField" aria-labelledby="pageSizeLabel">-</p>
+					</div>
+					<div class="separator"></div>
+					<div class="row">
+						<span id="linearizedLabel" data-l10n-id="document_properties_linearized">Fast Web View:</span>
+						<p id="linearizedField" aria-labelledby="linearizedLabel">-</p>
+					</div>
+					<div class="buttonRow">
+						<button id="documentPropertiesClose" class="dialogButton"><span
+								data-l10n-id="document_properties_close">Close</span></button>
+					</div>
+				</dialog>
+				<dialog id="printServiceDialog" style="min-width: 200px;">
+					<div class="row">
+						<span data-l10n-id="print_progress_message">Preparing document for printing…</span>
+					</div>
+					<div class="row">
+						<progress value="0" max="100"></progress>
+						<span data-l10n-id="print_progress_percent" data-l10n-args='{ "progress": 0 }'
+							class="relative-progress">0%</span>
+					</div>
+					<div class="buttonRow">
+						<button id="printCancel" class="dialogButton"><span
+								data-l10n-id="print_progress_close">Cancel</span></button>
+					</div>
+				</dialog>
+			</div> <!-- dialogContainer -->
+
+		</div> <!-- outerContainer -->
+		<div id="printContainer"></div>
+
+		<input type="file" id="fileInput" class="hidden">
+	</body>
+	<script type="text/javascript">
+		var post_to_parent = false;
+		// tips_language decide operate tips language, you can add you own language. tips_language决定了操作提示语，可以添加和自定义自己的提示语
+		var tips_language = 'zh-cn';
+		// var tips_language = 'en';
+
+		// default position for added text/arrow/rectangle/circle   添加文本、箭头、矩形、圆形的默认位置
+		var defult_left = 0;
+		var defult_top = 0;
+		var left_top_offset = 20;
+
+		var default_underline_width = 2;
+		var default_brush_width = 5;
+
+		//default colors for annotations   各类批注的的颜色
+		var default_fill_color = "#11999e";
+		var default_brush_color = 'rgba(57, 181, 74,1)';
+		var default_rect_fill_color = 'rgba(255, 237, 0,0.3)';
+		var default_highlight_color = 'rgba(255, 237, 0,1)';
+		var default_underline_color = 'rgba(57, 181, 74,1)';
+		var defult_top = 0;
+
+		//default annotation object  默认批注对象
+		var default_text = {
+			left: defult_left,
+			top: defult_top,
+			fill: default_fill_color,
+			fontSize: 80,
+			selectable: true,
+			id: 'id',
+		};
+		var default_triangle = {
+			width: 30,
+			height: 40,
+			fill: default_fill_color,
+			left: 200 + left_top_offset,
+			top: 0 + left_top_offset,
+			angle: 90,
+		};
+
+		var default_line = {
+			left: 0 + left_top_offset,
+			top: 13 + left_top_offset,
+			strokeWidth: 4,
+			stroke: default_fill_color,
+		};
+
+		var default_rectangle = {
+			left: defult_left,
+			top: defult_top,
+			width: 300,
+			height: 300,
+			fill: default_rect_fill_color,
+			stroke: default_fill_color,
+			strokeSize: 1,
+			id: 'id',
+		};
+
+		var default_circle = {
+			left: defult_left,
+			top: defult_top,
+			radius: 200,
+			fill: default_rect_fill_color,
+			stroke: default_fill_color,
+			strokeSize: 1,
+			id: 'id',
+		};
+
+
+		function endSelectionChangeListen() {
+
+		}
+
+		// main function, load html and listen   主函数
+		window.onload = function() {
+			var all_href = location.href;
+			var file_id = all_href.split('?')[1];
+			var pdfUrl = file_id.split('=')[1];
+			window.PDFViewerApplication.open(pdfUrl); //open pdf 打开pdf文档
+			addPinchListener(); // Listen gesture zoom 监听手势缩放
+
+			setAnnotationButtons(); //add annotation buttons 添加批注功能按钮
+			setColorControl(); //Add color control panel 添加颜色控制面板
+			setSingleOperater(); //add operation buttons after selection  增加选中后的操作按钮
+
+			pdf_viewer = document.getElementById('viewer');
+			pdf_viewer.addEventListener("mouseup", function(event) {
+				getMouseUpPos(event); //listen mouseup 监听鼠标抬起
+			}, true);
+
+			//listen selectionchange 监听选区变化
+			document.addEventListener("selectionchange", function(event) {
+				selectionAct();
+			}, true);
+
+
+			var that = this;
+			//listen file choosing and open 监听文件选择
+			var this_e = document.getElementById('choose_file');
+			this_e.addEventListener('change', function(e) {
+				var file = e.currentTarget.files[0];
+				if (file) {
+					if (file.type != 'application/json') {
+						alert('only support the file outputed by this application');
+						return;
+					}
+
+					const reader = new FileReader();
+					reader.readAsText(file);
+					reader.onload = () => {
+						if (file.type == 'application/json') {
+							var json_data = JSON.parse(reader.result);
+							setFileAnnotation(json_data);
+						}
+					}
+					reader.onerror = (e) => {
+						alert('error:', e)
+					}
+				}
+				this_e.value = '';
+			});
+
+			//ban mouse right click 禁止在菜单上的默认右键事件
+			var my_menu = document.getElementById('my-menu');
+			my_menu.oncontextmenu = function(e) {
+				e.preventDefault()
+			}
+
+			//listen color and opacity change 监听颜色变化和透明度变化
+			observeValue('fill');
+			observeValue('stroke');
+			observeValue('backgroundColor');
+			observeNumeric('opacity');
+			observeNumeric('strokeWidth');
+		}
+
+		//create color control panel 创建颜色控制面板
+		function setColorControl() {
+			var my_menu_node = document.getElementById('my-menu');
+			my_menu_node.innerHTML = ''; //clear 清空所有子元素
+			var buttons_text = {
+				'zh-cn': [
+					'<div title="关闭" onclick="hiddenMenu()"><label>关闭/close</label><i class="fa fa-times-circle" style="font-size: 15px;" aria-hidden="true"></i></div>',
+					'<div onclick="clickColorInput(this)" title="点击色块修改颜色"><label>填充色</label><input type="color" id="fill"></div>',
+					'<div onclick="clickColorInput(this)" title="点击色块修改颜色"><label>边框色</label><input type="color" id="stroke"></div>',
+					'<div onclick="clickColorInput(this)" title="点击色块修改颜色"><label>背景色</label><input type="color" id="backgroundColor"></div>',
+					'<div title="拖动进度条调整"><label style="margin-right: 20px;">边框粗细</label><input type="range" style="width: 80px;" id="strokeWidth" value="1" min="0" max="20" step="0.5"></div>',
+					'<div title="拖动进度条调整"><label style="margin-right: 20px;">不透明度</label><input type="range" style="width: 80px;" id="opacity" value="100" min="1" max="100" step="1"></div>',
+					'<div onclick="delEl()" title="删除对象"><label>删除</label><i class="fa fa-trash" style="font-size: 15px;" aria-hidden="true"></i></div>',
+				],
+				'en': [
+
+					'<div title="Close" onclick="hiddenMenu()"><label>Close</label><i class="fa fa-times-circle" style="font-size: 15px;" aria-hidden="true"></i></div>',
+					'<div onclick="clickColorInput(this)" title="click to select color"><label>FillColor</label><input type="color" id="fill"></div>',
+					'<div onclick="clickColorInput(this)" title="click to select color"><label>BorderColor</label><input type="color" id="stroke"></div>',
+					'<div onclick="clickColorInput(this)" title="click to select color"><label>BackgroundColor</label><input type="color" id="backgroundColor"></div>',
+					'<div title="select range"><label style="margin-right: 20px;">BorderSize</label><input type="range" style="width: 80px;" id="strokeWidth" value="1" min="0" max="20" step="0.5"></div>',
+					'<div title="select range"><label style="margin-right: 20px;">Opacity</label><input type="range" style="width: 80px;" id="opacity" value="100" min="1" max="100" step="1"></div>',
+					'<div onclick="delEl()" title="delete this object"><label>Delete</label><i class="fa fa-trash" style="font-size: 15px;" aria-hidden="true"></i></div>',
+				]
+			} [tips_language];
+
+			for (var i = 0; i < buttons_text.length; i++) {
+				var parent_button = document.createElement('div'); //add button 增加按钮
+				var outer_html = buttons_text[i];
+				parent_button.innerHTML = outer_html;
+				my_menu_node.appendChild(parent_button.childNodes[0]);
+			}
+		}
+
+		//create operation buttons after selection  创建选中后的操作按钮
+		function setSingleOperater() {
+			var buttons_text = {
+				'zh-cn': [
+					'<button title="高亮选中的文本" id="ff-touch-highlight-btn" onclick="singleHighlightAndUnderline(0)" type="button"><span style="margin-right: 5px;">高亮</span><i class="fa fa-paint-brush" aria-hidden="true"></i></button>',
+					'<button title="为选中的文本添加下划线" id="ff-touch-underline-btn" onclick="singleHighlightAndUnderline(1)" type="button"><span style="margin-right: 5px;">下划线</span><i class="fa fa-underline" aria-hidden="true"></i></button>',
+					'<button title="复制选中的文本" id="ff-touch-highlight-btn" onclick="singleCopy()" type="button"><span style="margin-right: 5px;">复制</span><i class="fa fa-clipboard" aria-hidden="true"></i></button>',
+					'<button title="取消选择" onclick="closeCopyConfirm()" type="button"><span style="margin-right: 5px;">取消</span><i class="fa fa-window-close" aria-hidden="true"></i></button>',
+				],
+				'en': [
+					'<button title="highlight selection text" id="ff-touch-highlight-btn" onclick="singleHighlightAndUnderline(0)" type="button"><span style="margin-right: 5px;">Highlight</span><i class="fa fa-paint-brush" aria-hidden="true"></i></button>',
+					'<button title="underline selection text" id="ff-touch-underline-btn" onclick="singleHighlightAndUnderline(1)" type="button"><span style="margin-right: 5px;">Underline</span><i class="fa fa-underline" aria-hidden="true"></i></button>',
+					'<button title="copy selection text" id="ff-touch-highlight-btn" onclick="singleCopy()" type="button"><span style="margin-right: 5px;">Copy</span><i class="fa fa-clipboard" aria-hidden="true"></i></button>',
+					'<button title="cancel selection" onclick="closeCopyConfirm()" type="button"><span style="margin-right: 5px;">Cancel</span><i class="fa fa-window-close" aria-hidden="true"></i></button>',
+				]
+			} [tips_language];
+
+			var single_buttons = document.getElementById('ff-copyconfirm-btn');
+			single_buttons.innerHTML = ''; //clear 清空所有子元素
+
+			for (var i = 0; i < buttons_text.length; i++) {
+				var parent_button = document.createElement('button'); //add button 增加按钮
+				var outer_html = buttons_text[i];
+				parent_button.innerHTML = outer_html;
+				single_buttons.appendChild(parent_button.childNodes[0]);
+
+				if (i != buttons_text.length - 1) {
+					var split_div = document.createElement('div');
+					split_div.classList.add('vertical-split');
+					single_buttons.appendChild(split_div);
+				}
+			}
+		}
+
+		// create left annotation buttons  创建左侧操作工具
+		function setAnnotationButtons() {
+			var annotation_buttons_node = document.getElementById('firefly-annotation-buttons');
+			annotation_buttons_node.innerHTML = ''; //clear 清空所有子元素
+
+			var buttons_text = {
+				'zh-cn': [
+					'<button title="下载批注后的文件(批注将标记在下载的文件中)" id="ff-download-btn" onclick="myDownLoad()" type="button"><i class="fa fa-folder" aria-hidden="true"></i></button>',
+					'<button title="文本高亮(再次点击取消滑选标注)" id="ff-highlight-btn" onclick="clickTab(this)" type="button"><i class="fa fa-paint-brush" aria-hidden="true"></i></button>',
+					'<button title="文本下划线(再次点击取消滑选标注)" id="ff-underline-btn" onclick="clickTab(this)" type="button"><i class="fa fa-underline" aria-hidden="true"></i></button>',
+					'<button title="编辑标注" id="ff-edit-btn" onclick="editAnnotation()" type="button"><i class="fa fa-list-ul" aria-hidden="true"></i></button>',
+					'<button title="选中对象" id="ff-pointer-obj" onclick="setFabricTop(this)" type="button"><i class="fa fa-mouse-pointer" aria-hidden="true"></i></button>',
+					'<button title="插入图片" id="ff-import-img" onclick="chooseImage()" type="button"><i class="fa fa-picture-o" aria-hidden="true"></i></button>',
+					'<button title="画笔工具" id="ff-free-draw" onclick="fabricDraw(this)" type="button"><i class="fa fa-pencil" aria-hidden="true"></i></button>',
+					'<button title="文字工具" id="ff-add-text" onclick="addFabricObj(this,2)" type="button"><i class="fa fa-font" aria-hidden="true"></i></button>',
+					'<button title="箭头工具" id="ff-add-arrow" onclick="addFabricObj(this,3)" type="button"><i class="fa fa-external-link-square" aria-hidden="true"></i></button>',
+					'<button title="矩形工具" id="ff-add-rect" onclick="addFabricObj(this,4)" type="button"><i class="fa fa-window-maximize" aria-hidden="true"></i></button>',
+					'<button title="圆形工具" id="ff-add-circle" onclick="addFabricObj(this,5)" type="button"><i class="fa fa-circle" aria-hidden="true"></i></button>',
+					'<button title="导出标注(json格式)" id="ff-output-btn" onclick="outputAnnotations()" type="button"><i class="fa fa-upload" aria-hidden="true"></i></button>',
+					'<button title="导入标注(json格式)" id="ff-import-btn" onclick="openAnnotationFile()" type="button"><i class="fa fa-download" aria-hidden="true"></i></button>',
+					'<button title="下载注释(txt格式)" id="ff-download-btn" onclick="downloadAnnotations()" type="button"><i class="fa fa-arrow-circle-down" aria-hidden="true"></i></button>',
+					'<button title="切换至英文" id="ff-language-btn" onclick="setLanguage(1)" type="button"><i class="fa fa-etsy" aria-hidden="true"></i></button>',
+					'<button title="帮助文档" id="ff-undo-btn" onclick="openHelpDoc()" type="button"><i class="fa fa-question-circle" aria-hidden="true"></i></button>',
+				],
+				'en': [
+					'<button title="download pdf with annotations mark" id="ff-download-btn" onclick="myDownLoad()" type="button"><i class="fa fa-folder" aria-hidden="true"></i></button>',
+					'<button title="highlight" id="ff-highlight-btn" onclick="clickTab(this)" type="button"><i class="fa fa-paint-brush" aria-hidden="true"></i></button>',
+					'<button title="underline" id="ff-underline-btn" onclick="clickTab(this)" type="button"><i class="fa fa-underline" aria-hidden="true"></i></button>',
+					'<button title="edit annotations" id="ff-edit-btn" onclick="editAnnotation()" type="button"><i class="fa fa-list-ul" aria-hidden="true"></i></button>',
+					'<button title="select annotation object" id="ff-pointer-obj" onclick="setFabricTop(this)" type="button"><i class="fa fa-mouse-pointer" aria-hidden="true"></i></button>',
+					'<button title="insert image" id="ff-import-img" onclick="chooseImage()" type="button"><i class="fa fa-picture-o" aria-hidden="true"></i></button>',
+					'<button title="free draw" id="ff-free-draw" onclick="fabricDraw(this)" type="button"><i class="fa fa-pencil" aria-hidden="true"></i></button>',
+					'<button title="add text" id="ff-add-text" onclick="addFabricObj(this,2)" type="button"><i class="fa fa-font" aria-hidden="true"></i></button>',
+					'<button title="add arrow" id="ff-add-arrow" onclick="addFabricObj(this,3)" type="button"><i class="fa fa-external-link-square" aria-hidden="true"></i></button>',
+					'<button title="add rectangle" id="ff-add-rect" onclick="addFabricObj(this,4)" type="button"><i class="fa fa-window-maximize" aria-hidden="true"></i></button>',
+					'<button title="add circle" id="ff-add-circle" onclick="addFabricObj(this,5)" type="button"><i class="fa fa-circle" aria-hidden="true"></i></button>',
+					'<button title="output annotations(json)" id="ff-output-btn" onclick="outputAnnotations()" type="button"><i class="fa fa-upload" aria-hidden="true"></i></button>',
+					'<button title="import annotations(json)" id="ff-import-btn" onclick="openAnnotationFile()" type="button"><i class="fa fa-download" aria-hidden="true"></i></button>',
+					'<button title="download annotations(txt)" id="ff-download-btn" onclick="downloadAnnotations()" type="button"><i class="fa fa-arrow-circle-down" aria-hidden="true"></i></button>',
+					'<button title="change tips to Chinese" id="ff-language-btn" onclick="setLanguage(0)" type="button"><i class="fa fa-etsy" aria-hidden="true"></i></button>',
+					'<button title="help" id="ff-undo-btn" onclick="openHelpDoc()" type="button"><i class="fa fa-question-circle" aria-hidden="true"></i></button>',
+				]
+			} [tips_language];
+
+			if (post_to_parent == true) {
+				buttons_text = [
+					'<button title="下载批注后的文件(批注将标记在下载的文件中)" id="ff-download-btn" onclick="myDownLoad()" type="button"><i class="fa fa-folder" aria-hidden="true"></i></button>',
+					'<button title="文本高亮(再次点击取消滑选标注)" id="ff-highlight-btn" onclick="clickTab(this)" type="button"><i class="fa fa-paint-brush" aria-hidden="true"></i></button>',
+					'<button title="文本下划线(再次点击取消滑选标注)" id="ff-underline-btn" onclick="clickTab(this)" type="button"><i class="fa fa-underline" aria-hidden="true"></i></button>',
+					'<button title="编辑标注" id="ff-edit-btn" onclick="editAnnotation()" type="button"><i class="fa fa-list-ul" aria-hidden="true"></i></button>',
+					'<button title="选中对象" id="ff-pointer-obj" onclick="setFabricTop(this)" type="button"><i class="fa fa-mouse-pointer" aria-hidden="true"></i></button>',
+					'<button title="插入图片" id="ff-import-img" onclick="chooseImage()" type="button"><i class="fa fa-picture-o" aria-hidden="true"></i></button>',
+					'<button title="画笔工具" id="ff-free-draw" onclick="fabricDraw(this)" type="button"><i class="fa fa-pencil" aria-hidden="true"></i></button>',
+					'<button title="文字工具" id="ff-add-text" onclick="addFabricObj(this,2)" type="button"><i class="fa fa-font" aria-hidden="true"></i></button>',
+					'<button title="箭头工具" id="ff-add-arrow" onclick="addFabricObj(this,3)" type="button"><i class="fa fa-external-link-square" aria-hidden="true"></i></button>',
+					'<button title="矩形工具" id="ff-add-rect" onclick="addFabricObj(this,4)" type="button"><i class="fa fa-window-maximize" aria-hidden="true"></i></button>',
+					'<button title="圆形工具" id="ff-add-circle" onclick="addFabricObj(this,5)" type="button"><i class="fa fa-circle" aria-hidden="true"></i></button>',
+					'<button title="导出标注(json格式)" id="ff-output-btn" onclick="outputAnnotations()" type="button"><i class="fa fa-upload" aria-hidden="true"></i></button>',
+					'<button title="导入标注(json格式)" id="ff-import-btn" onclick="openAnnotationFile()" type="button"><i class="fa fa-download" aria-hidden="true"></i></button>',
+					'<button title="云端保存标注" id="ff-upload-btn" onclick="uploadAnnotation()" type="button"><i class="fa fa-cloud-upload" aria-hidden="true"></i></button>',
+					'<button title="手动加载云端标注" id="ff-menusearch-btn" onclick="menuSearchAnnotation()" type="button"><i class="fa fa-cloud-download" aria-hidden="true"></i></button>',
+					'<button title="下载注释(txt格式)" id="ff-download-btn" onclick="downloadAnnotations()" type="button"><i class="fa fa-arrow-circle-down" aria-hidden="true"></i></button>',
+					'<button title="帮助文档" id="ff-undo-btn" onclick="openHelpDoc()" type="button"><i class="fa fa-question-circle" aria-hidden="true"></i></button>',
+				];
+			}
+
+			for (var i = 0; i < buttons_text.length; i++) {
+				var parent_button = document.createElement('button'); //add button 增加按钮
+				var outer_html = buttons_text[i];
+				parent_button.innerHTML = outer_html;
+				annotation_buttons_node.appendChild(parent_button.childNodes[0]);
+			}
+		}
+
+		//create help text and show   创建帮助文本并显示
+		function openHelpDoc() {
+			var helps = {
+				'zh-cn': [{
+						'title': '下载文件',
+						'detail': '下载批注后的文件，批注将标记在下载的文件中且不可撤销，如果需要编辑批注请打开未经本应用导入的文件',
+					},
+					{
+						'title': '文本高亮',
+						'detail': '高亮滑选的文本，对非黑色字体无效。',
+					},
+					{
+						'title': '文本下划线',
+						'detail': '给滑选的文本增加下划线，对非黑色字体无效。',
+					},
+					{
+						'title': '注释列表',
+						'detail': '打开注释列表并编辑（复制/删除/前往）',
+					},
+					{
+						'title': '选中对象',
+						'detail': '选中批注对象并修改',
+					},
+					{
+						'title': '插入图片',
+						'detail': '插入本地图片，会自动压缩图片',
+					},
+					{
+						'title': '画笔工具',
+						'detail': '在当前页面使用画笔工具自由绘制',
+					},
+					{
+						'title': '文本框工具',
+						'detail': '给当前页面添加可输入文本框',
+					},
+					{
+						'title': '箭头工具',
+						'detail': '给当前页面添加箭头',
+					},
+					{
+						'title': '矩形工具',
+						'detail': '给当前页面添加矩形框',
+					},
+					{
+						'title': '圆形工具',
+						'detail': '给当前页面添加圆',
+					},
+					{
+						'title': '导出注释',
+						'detail': '导出完整结构标注，用于给同名文件增加标注。',
+					},
+					{
+						'title': '导入标注',
+						'detail': '导入完整结构标注，用于给当前文件增加标注。',
+					},
+					{
+						'title': '下载标注',
+						'detail': '导出当前文件标注和评论为txt格式文档。',
+					},
+					{
+						'title': '切换语言',
+						'detail': '切换提示语言至英文',
+					},
+					{
+						'title': '帮助文档',
+						'detail': '打开帮助文档。',
+					},
+				],
+				'en': [{
+						'title': 'download',
+						'detail': 'download pdf with annotations mark, it can not be undo, if you want to modify annotations, please open source file',
+					}, {
+						'title': 'highlight',
+						'detail': 'highlight selected text, valid for only black text',
+					},
+					{
+						'title': 'underline',
+						'detail': 'underline selected text, valid for only black text',
+					},
+					{
+						'title': 'annotation list',
+						'detail': 'show annotation list and edit (copy/delete/gotp)',
+					},
+					{
+						'title': 'select object',
+						'detail': 'select annotation to modify',
+					},
+					{
+						'title': 'insert image',
+						'detail': 'insert image to current page and compress it',
+					},
+					{
+						'title': 'free draw',
+						'detail': 'free draw by brush in current page',
+					},
+					{
+						'title': 'text input box',
+						'detail': 'add text input box to current page',
+					},
+					{
+						'title': 'arrow tool',
+						'detail': 'add arrow to current page',
+					},
+					{
+						'title': 'rectangle tool',
+						'detail': 'add rectangle to current page',
+					},
+					{
+						'title': 'circle tool',
+						'detail': 'add circle to current page',
+					},
+					{
+						'title': 'output annotations',
+						'detail': 'output annotations for importing',
+					},
+					{
+						'title': 'import annotations',
+						'detail': 'import annotations for current file',
+					},
+					{
+						'title': 'download annotations',
+						'detail': 'download only annotations text and comments to txt',
+					},
+					{
+						'title': 'set language',
+						'detail': 'change tips language to Chinese',
+					},
+					{
+						'title': 'help',
+						'detail': 'open help file',
+					},
+				]
+			} [tips_language];
+
+			if (post_to_parent == true) {
+				helps = [{
+						'title': '下载文件',
+						'detail': '下载批注后的文件，批注将标记在下载的文件中且不可撤销，如果需要编辑批注请打开未经本应用导入的文件',
+					}, {
+						'title': '文本高亮',
+						'detail': '高亮滑选的文本，对非黑色字体无效。',
+					},
+					{
+						'title': '文本下划线',
+						'detail': '给滑选的文本增加下划线，对非黑色字体无效。',
+					},
+					{
+						'title': '注释列表',
+						'detail': '打开注释列表并编辑（复制/删除/前往）',
+					},
+					{
+						'title': '选中对象',
+						'detail': '选中批注对象并修改',
+					},
+					{
+						'title': '插入图片',
+						'detail': '插入本地图片，会自动压缩图片',
+					},
+					{
+						'title': '画笔工具',
+						'detail': '在当前页面使用画笔工具自由绘制',
+					},
+					{
+						'title': '文本框工具',
+						'detail': '给当前页面添加可输入文本框',
+					},
+					{
+						'title': '箭头工具',
+						'detail': '给当前页面添加箭头',
+					},
+					{
+						'title': '矩形工具',
+						'detail': '给当前页面添加矩形框',
+					},
+					{
+						'title': '圆形工具',
+						'detail': '给当前页面添加圆',
+					},
+					{
+						'title': '导出注释',
+						'detail': '导出完整结构标注，用于给同名文件增加标注。',
+					},
+					{
+						'title': '导入标注',
+						'detail': '导入完整结构标注，用于给当前文件增加标注。',
+					},
+					{
+						'title': '云端保存',
+						'detail': '将标注保存到云端，仅可用于云端文件。',
+					},
+					{
+						'title': '加载云端标注',
+						'detail': '用于云端标注未正确加载的情况。',
+					},
+					{
+						'title': '下载标注',
+						'detail': '导出当前文件标注和评论为txt格式文档。',
+					},
+					{
+						'title': '帮助文档',
+						'detail': '打开帮助文档。',
+					},
+				];
+			}
+
+			var help_str = {
+				'zh-cn': '帮助文档:\n祝使用愉快\n\n按钮功能说明:\n',
+				'en': 'help file for buttons introduction:\n',
+			} [tips_language];
+
+			var nums = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'];
+			for (var i = 0; i < helps.length; i++) {
+				var this_help = helps[i];
+				help_str += nums[i] + ' ' + this_help['title'] + ' : ' + this_help['detail'] + '\n';
+			}
+
+			alert(help_str);
+		};
+
+		//listen tips_language change   监听tips language 的变化
+		function setLanguage(op) {
+			if (op == 0) {
+				tips_language = "zh-cn"
+			} else {
+				tips_language = "en"
+			}
+			setAnnotationButtons();
+			setColorControl();
+			setSingleOperater();
+			//Listen again after switching languages 切换语言之后重新监听
+			observeValue('fill');
+			observeValue('stroke');
+			observeValue('backgroundColor');
+			observeNumeric('opacity');
+			observeNumeric('strokeWidth');
+		};
+	</script>
+</html>

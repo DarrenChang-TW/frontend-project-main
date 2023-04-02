@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.app.json",
+  "exclude": [],
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["es2022","es5", "es6", "dom"],
+    "types": ["node", "jsdom"],
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "target": "es2022",
+    "useDefineForClassFields": true,
+    "module": "es2022",
+    "moduleResolution": "node",
+    "strict": true,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
+  ]
+}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+	</head>
+	<body>
+		<div style="display: flex;flex-direction: row;">
+			<iframe id='pdfjs-iframe' src="viewer.html?file=test_ocr_highlight.pdf" frameborder="0" width="70%"
+				height="810px"></iframe>
+			<div style="width: 27%;margin-left: 2%;display: flex;flex-direction: column;">
+				<div>
+					<button onclick="highLightInputCor()" type="button">高亮当前坐标</button>
+					<button onclick="testExample1()" type="button">测试Example1</button>
+					<button onclick="testExample2()" type="button">测试Example2</button>
+					<h4>待高亮坐标</h4>
+					<p id='input_cor' style="border: #000000 1px solid;padding: 2px;" contenteditable="true">用于高亮的坐标信息
+					</p>
+				</div>
+				<div>
+					<h4>当前Highlight坐标</h4>
+					<p id='current-highlight' style="border: #000000 1px solid;padding: 2px;" contenteditable="true">
+						高亮后坐标显示位置</p>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript">
+		window.onload = function() {
+			window.addEventListener('message', (e) => {
+				if (e.data.source != 'pdfjs-highlight') {
+					return;
+				}
+				document.getElementById('current-highlight').innerText = JSON.stringify(e.data.content);
+				console.log('接收到高亮信息', e.data);
+			});
+		}
+
+		function testExample1() {
+			var input_coor = {
+				"BlockType": "TABLE",
+				"Confidence": 97.4641,
+				"Text": null,
+				"TextType": null,
+				"RowIndex": null,
+				"ColumnIndex": null,
+				"RowSpan": null,
+				"ColumnSpan": null,
+				"Geometry": {
+					"BoundingBox": {
+						"Width": 0.49395376,
+						"Height": 0.051045835,
+						"Left": 0.34257045,
+						"Top": 0.52341026
+					},
+					"Polygon": [{
+							"X": 0.34264824,
+							"Y": 0.52341026
+						},
+						{
+							"X": 0.83652425,
+							"Y": 0.52375156
+						},
+						{
+							"X": 0.83645135,
+							"Y": 0.5744561
+						},
+						{
+							"X": 0.34257045,
+							"Y": 0.57411414
+						}
+					]
+				},
+				"Id": "44c6e410-8336-4d4c-8989-efcd08471c89",
+				"Relationships": [{
+					"Type": "CHILD",
+					"Ids": [
+						"94dc9819-c54d-4c82-b517-a9d7936f82b9",
+						"ac9c99bf-2123-4dc8-bb90-a92aceb36a4d",
+						"8cdf6ce1-471d-433e-a130-30a107fac3de",
+						"0bbb4747-88f6-4399-80e7-12ccff1b2e6d",
+						"5e5674ad-8925-46cc-93cc-ed0ece440a05",
+						"1734e40b-abd8-4d99-b669-34c52deae5d7",
+						"beff440b-90ff-4bea-b122-a0b8577be38d",
+						"0d93e1bc-98dc-4258-85fc-fa367d99be6b",
+						"8eaf83ec-56d1-43d0-b066-934a4a252d60"
+					]
+				}],
+				"EntityTypes": null,
+				"SelectionStatus": null,
+				"Page": 1
+			};
+			convertCoordinateAndHighlight(input_coor);
+		}
+
+		function testExample2() {
+			var input_coor = {
+				"BlockType": "LINE",
+				"Confidence": 99.89158,
+				"Text": "LEASE AGREEMENT",
+				"TextType": null,
+				"RowIndex": null,
+				"ColumnIndex": null,
+				"RowSpan": null,
+				"ColumnSpan": null,
+				"Geometry": {
+					"BoundingBox": {
+						"Width": 0.16777185,
+						"Height": 0.011277317,
+						"Left": 0.39917845,
+						"Top": 0.12617083
+					},
+					"Polygon": [{
+							"X": 0.39919543,
+							"Y": 0.12617083
+						},
+						{
+							"X": 0.5669503,
+							"Y": 0.12628508
+						},
+						{
+							"X": 0.5669337,
+							"Y": 0.13744815
+						},
+						{
+							"X": 0.39917845,
+							"Y": 0.13733386
+						}
+					]
+				},
+				"Id": "f9667be9-9148-4a71-9508-a36d27fcc907",
+				"Relationships": [{
+					"Type": "CHILD",
+					"Ids": [
+						"25ec6d9a-b36f-4192-b4e1-ce593ef944c7",
+						"ce11a143-843e-49ef-995d-2e4e2630fc1e"
+					]
+				}],
+				"EntityTypes": null,
+				"SelectionStatus": null,
+				"Page": 1
+			};
+			convertCoordinateAndHighlight(input_coor);
+		}
+		
+		//转换坐标并高亮
+		function convertCoordinateAndHighlight(input_coor) {
+			var BoundingBox = input_coor['Geometry']['BoundingBox'];
+			var new_all_rect = [BoundingBox['Left'], BoundingBox['Top'], BoundingBox['Width'], BoundingBox['Height']];
+
+
+			var poly = input_coor['Geometry']['Polygon'];
+			var new_rects = [];
+			
+			var new_left = poly[0]['X'];
+			var new_top = poly[0]['Y'];
+			var new_width = poly[2]['X'] - new_left;
+			var new_height = poly[2]['Y'] - new_top;
+			new_rects.push([new_left, new_top, new_width, new_height]);
+			
+			var new_id=new Date().getTime()+'_'+input_coor['Id'];
+			var highlight_coor = {
+				"id": new_id,
+				"page_number": input_coor['Page'],
+				"member_id": "user_1",
+				"save_scale_x": "1.00000000",
+				"save_scale_y": "1.00000000",
+				"comment": "add comment",
+				"type": "highlight",
+				"true_size": [100, 100],
+				"all_rect": new_all_rect,
+				"all_str": input_coor['Text'],
+				"rects": new_rects,
+			};
+
+			// PDFViewerApplication.page=input_coor['Page'];
+			document.getElementById("pdfjs-iframe").contentWindow.highLightTargetCor(input_coor['Page'],highlight_coor);
+		}
+
+		function highLightInputCor() {
+			// var pages=document.getElementsByClassName('page');
+			// console.log('pages',pages);
+
+			var input_cor = document.getElementById('input_cor').innerText;
+			// console.log(JSON.parse(input_cor));
+			var this_annotation = JSON.parse(input_cor);
+			document.getElementById("pdfjs-iframe").contentWindow.highLightTargetCor(this_annotation['page_number'],this_annotation);
+		}
+	</script>
+</html>

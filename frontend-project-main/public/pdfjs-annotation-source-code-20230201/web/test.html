@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+	</head>
+	<body>
+		<div style="display: flex;flex-direction: row;">
+			<iframe id='pdfjs-iframe' src="viewer.html?file=example_new.pdf" frameborder="0" width="70%"
+				height="810px"></iframe>
+			<div style="width: 27%;margin-left: 2%;display: flex;flex-direction: column;">
+				<div>
+					<button onclick="highLightInputCor()" type="button">高亮当前坐标</button>
+					<h4>待高亮坐标</h4>
+					<p id='input_cor' style="border: #000000 1px solid;padding: 2px;" contenteditable="true">用于高亮的坐标信息</p>
+				</div>
+				<div>
+					<h4>当前Highlight坐标</h4>
+					<p id='current-highlight' style="border: #000000 1px solid;padding: 2px;" contenteditable="true">高亮后坐标显示位置</p>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript">
+		window.onload = function() {
+			window.addEventListener('message', (e) => {
+				if (e.data.source != 'pdfjs-highlight') {
+					return;
+				}
+				document.getElementById('current-highlight').innerText=JSON.stringify(e.data.content);
+				console.log('接收到高亮信息',e.data);
+			});
+		}
+		
+		function highLightInputCor(){
+			// var pages=document.getElementsByClassName('page');
+			// console.log('pages',pages);
+			
+			var input_cor=document.getElementById('input_cor').innerText;
+			// console.log(JSON.parse(input_cor));
+			var this_annotation=JSON.parse(input_cor);
+			document.getElementById("pdfjs-iframe").contentWindow.addAnnotationToFabric(this_annotation, []);
+		}
+		
+	</script>
+</html>
+
